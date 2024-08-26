@@ -178,6 +178,9 @@ class App(QWidget):
         self.api_key_entry.setPlaceholderText("Enter API Key and press Enter")
         self.api_key_entry.returnPressed.connect(self.enter_key)
         layout.addWidget(self.api_key_entry)
+        self.api_key_clear = QPushButton("Clear API Key")
+        self.api_key_clear.clicked.connect(self.clear_key)
+        layout.addWidget(self.api_key_clear)
 
         if self.api_key != ANON_API_KEY:
             self.api_key_entry.setText(self.api_key)
@@ -195,6 +198,12 @@ class App(QWidget):
         layout.addWidget(self.workers_area)
 
         self.setLayout(layout)
+
+    def clear_key(self):
+        self.api_key = ""
+        keyring.set_password(self.service_name, "api_key", "")
+        self.api_key_entry.clear()
+        QMessageBox.information(self, "Cleared", "API Key Cleared successfully.")
 
     def enter_key(self):
         api_key = self.api_key_entry.text()
