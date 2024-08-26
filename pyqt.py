@@ -12,16 +12,18 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QScrollArea,
     QGroupBox,
-    QDialog, QProgressBar
+    QDialog,
+    QProgressBar,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QThread, pyqtSignal
-
+import keyring
 import requests
 from http import HTTPStatus
 
 ANON_API_KEY = "0000000000"
 BASE_URL = "https://aihorde.net/api/v2/"
+
 
 class LoadingDialog(QDialog):
     def __init__(self, parent=None):
@@ -36,6 +38,7 @@ class LoadingDialog(QDialog):
         layout.addWidget(self.progress)
         self.setLayout(layout)
         self.setFixedSize(300, 100)
+
 
 class WorkerThread(QThread):
     user_info_signal = pyqtSignal(dict)
@@ -158,6 +161,13 @@ class App(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.service_name = (
+            "AIHordeWorkerManager"  # A unique name for your application in the keyring
+        )
+        self.api_key = (
+            keyring.get_password(self.service_name, "api_key") or ANON_API_KEY
+        )
+
         self.setWindowTitle("AI Horde Worker Manager")
         self.setGeometry(300, 100, 800, 600)
 
@@ -169,6 +179,8 @@ class App(QWidget):
         self.api_key_entry.returnPressed.connect(self.enter_key)
         layout.addWidget(self.api_key_entry)
 
+        if self.api_key != ANON_API_KEY:
+            self.api_key_entry.setText(self.api_key)
         self.user_info = UserInfo()
         layout.addWidget(self.user_info)
 
@@ -183,6 +195,7 @@ class App(QWidget):
         layout.addWidget(self.workers_area)
 
         self.setLayout(layout)
+
     def enter_key(self):
         api_key = self.api_key_entry.text()
         if api_key == "":
@@ -192,13 +205,17 @@ class App(QWidget):
             self.show_error(f"Anonymous ({ANON_API_KEY}) can't run workers")
             return
 
+        # If user enters a new API key, save it to keyring
+        if api_key != self.api_key:
+            keyring.set_password(self.service_name, "api_key", api_key)
+            self.api_key = api_key
 
         # Show loading dialog
         self.loading_dialog = LoadingDialog(self)
         self.loading_dialog.show()
 
         # Start the thread to fetch user info
-        self.worker_thread = WorkerThread(api_key)
+        self.worker_thread = WorkerThread(self.api_key)
         self.worker_thread.user_info_signal.connect(self.handle_user_info)
         self.worker_thread.error_signal.connect(self.show_error)
         self.worker_thread.finished.connect(self.loading_dialog.close)
