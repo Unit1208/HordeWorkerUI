@@ -54,7 +54,7 @@ class WorkerThread(QThread):
                 BASE_URL + "find_user",
                 headers={
                     "apikey": self.api_key,
-                    "Client-Agent": "HordeWorkerManager:0.1.0:Unit1208",
+                    "Client-Agent": "https://github.com/Unit1208/HordeWorkerUI:0.1.0:Unit1208",
                 },
             )
             if r.status_code == HTTPStatus.NOT_FOUND:
